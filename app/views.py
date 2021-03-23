@@ -4,10 +4,16 @@ Jinja2 Documentation:    http://jinja.pocoo.org/2/documentation/
 Werkzeug Documentation:  http://werkzeug.pocoo.org/documentation/
 This file creates your application.
 """
+import os
+from app import app, db
+from flask import render_template, request, redirect, url_for, send_from_directory, flash
+from app.propertyform import Propertyform
+from werkzeug.utils import secure_filename
+from app.models import Properties
+import psycopg2
 
-from app import app
-from flask import render_template, request, redirect, url_for
-
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 ###
 # Routing for your application.
@@ -23,6 +29,93 @@ def home():
 def about():
     """Render the website's about page."""
     return render_template('about.html', name="Mary Jane")
+
+
+@app.route('/property', methods=['POST', 'GET'])
+def property():
+    form=Propertyform()
+    
+    if request.method == 'POST': 
+        if form.validate_on_submit:
+            photo=form.photo.data
+            filename=secure_filename(photo.filename)
+            photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+            datab=Properties()
+
+            datab.title=form.title.data
+            datab.desc=form.desc.data
+            datab.bedroom=form.bedroom.data
+            datab.bathroom=form.bathroom.data
+            datab.price=form.price.data
+            datab.location=form.location.data
+            datab.propertytype=form.select.data
+            datab.photoname=filename
+           
+            db.session.add(datab)
+            db.session.commit()
+        
+            flash('Property Added', 'success')
+            return redirect(url_for('properties'))
+
+    return render_template('propertyform.html', form=form)
+
+def getprop():
+    prop=Properties.query.all()
+    results=[{
+        "photo":p.photoname,
+        "title":p.title,
+        "location":p.location,
+        "price":p.price,
+        "id":p.id,
+        "bedroom":p.bedroom,
+        "bathroom":p.bathroom,
+        "propertytype":p.propertytype,
+        "desc":p.desc
+        
+        
+    } for p in prop]
+    return results
+
+#def connect_db():
+#    return psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI'])
+
+@app.route('/properties')
+def properties():
+    prop=getprop()
+
+    
+    return render_template('properties.html',prop=prop )
+
+
+@app.route('/properties/<ph>')
+def get_image(ph):
+
+    root_dir=os.getcwd()
+
+    return send_from_directory(os.path.join(root_dir, app.config['UPLOAD_FOLDER']), ph)
+
+
+def get_uploaded_images():
+    rootdir=os.getcwd()
+    path=rootdir+ '/uploads' 
+    file_list = [] 
+
+    for subdir, dirs, files in os.walk(path):
+        for name in files:
+            if name.endswith(('.png','.PNG', '.jpg','.JPG', '.jpeg','JPEG')):
+                file_list.append(name)
+
+    return file_list
+
+
+@app.route('/property/<propertyid>')
+def viewproperty(propertyid):
+    prop=getprop()
+    l=[prop,propertyid]
+    return render_template('property.html', prop=l)
+
+
 
 
 ###

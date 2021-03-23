@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block main %}
+
+
+{% include 'flash_messages.html' %}
+
+<ul>
+
+   {%for p in prop[0] %} 
+        
+        {% if p['id']|string()==prop[1]|string() %}
+            
+
+            <div class=propitem> 
+                <li><img  src="{{ url_for('get_image', ph=p['photo']) }}"/></li>
+                <li><h1>{{p['title']}}</h1></li>
+                <li>{{p['price']}}</li>
+                <li>{{p['propertytype']}}</li>
+                <li>{{p['desc']}}</li>
+                <li>{{p['bedroom']}} Bedrooms</li>
+                <li>{{p['bathroom']}} Bathrooms</li>
+                <li>{{p['location']}}</li>
+
+                <button>Email Realtor</button>
+            </div>
+        {%endif%}
+    {%endfor%}
+   
+
+</ul>
+
+{% endblock %}
